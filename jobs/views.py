@@ -230,7 +230,7 @@ class JobDetail(JobMixin, DetailView):
         context['user_can_edit'] = (
             self.object.creator == self.request.user or
             self.has_jobs_board_admin_access()
-        ) and self.object.editable
+        )
         context['job_review_form'] = JobReviewCommentForm(initial={'job': self.object})
         return context
 
