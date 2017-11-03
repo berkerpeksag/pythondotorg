@@ -34,8 +34,36 @@ def convert_pep0():
     """
     pep0_path = os.path.join(settings.PEP_REPO_PATH, 'pep-0000.html')
     pep0_content = open(pep0_path).read()
-    data = convert_pep_page(0, pep0_content)
-    return data['content']
+
+    soup = BeautifulSoup(pep0_content, 'lxml')
+
+    body_children = list(soup.body.children)
+
+    # Grab header and PEP body
+    header = body_children[3]
+    pep_content = body_children[7]
+
+    # Fix PEP links
+    body_links = pep_content.find_all("a")
+
+    pep_href_re = re.compile(r'pep-(\d+)\.html')
+
+    for b in body_links:
+        m = pep_href_re.search(b.attrs['href'])
+
+        # Skip anything not matching 'pep-XXXX.html'
+        if not m:
+            continue
+
+        b.attrs['href'] = '/dev/peps/pep-{}/'.format(m.group(1))
+
+    # Remove Version from header
+    header_rows = header.find_all('th')
+    for t in header_rows:
+        if 'Version:' in t.text and 'N/A' in t.next_sibling.text:
+            t.parent.extract()
+
+    return ''.join([str(header), str(pep_content)])
 
 
 def get_pep0_page(commit=True):
@@ -96,7 +124,7 @@ def convert_pep_page(pep_number, content):
     pep_number_humanize = re.sub(r'^0+', '', str(pep_number))
 
     if '<html>' in content:
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content, 'lxml')
         data['title'] = soup.title.text
 
         if not re.search(r'PEP \d+', data['title']):
@@ -118,7 +146,7 @@ def convert_pep_page(pep_number, content):
         ])
 
     else:
-        soup = BeautifulSoup(content)
+        soup = BeautifulSoup(content, 'lxml')
 
         soup, data = fix_headers(soup, data)
         if not data['title']:
@@ -133,7 +161,7 @@ def convert_pep_page(pep_number, content):
         data['content'] = str(soup)
 
     # Fix PEP links
-    pep_content = BeautifulSoup(data['content'])
+    pep_content = BeautifulSoup(data['content'], 'lxml')
     body_links = pep_content.find_all("a")
 
     pep_href_re = re.compile(r'pep-(\d+)\.html')
@@ -230,7 +258,7 @@ def add_pep_image(pep_number, path):
 
     # Old images used to live alongside html, but now they're in different
     # places, so update the page accordingly.
-    soup = BeautifulSoup(page.content.raw)
+    soup = BeautifulSoup(page.content.raw, 'lxml')
     for img_tag in soup.findAll('img'):
         if img_tag['src'] == path:
             img_tag['src'] = os.path.join(settings.MEDIA_URL, page.path, path)
