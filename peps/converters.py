@@ -34,36 +34,8 @@ def convert_pep0():
     """
     pep0_path = os.path.join(settings.PEP_REPO_PATH, 'pep-0000.html')
     pep0_content = open(pep0_path).read()
-
-    soup = BeautifulSoup(pep0_content, 'lxml')
-
-    body_children = list(soup.body.children)
-
-    # Grab header and PEP body
-    header = body_children[3]
-    pep_content = body_children[7]
-
-    # Fix PEP links
-    body_links = pep_content.find_all("a")
-
-    pep_href_re = re.compile(r'pep-(\d+)\.html')
-
-    for b in body_links:
-        m = pep_href_re.search(b.attrs['href'])
-
-        # Skip anything not matching 'pep-XXXX.html'
-        if not m:
-            continue
-
-        b.attrs['href'] = '/dev/peps/pep-{}/'.format(m.group(1))
-
-    # Remove Version from header
-    header_rows = header.find_all('th')
-    for t in header_rows:
-        if 'Version:' in t.text and 'N/A' in t.next_sibling.text:
-            t.parent.extract()
-
-    return ''.join([str(header), str(pep_content)])
+    data = convert_pep_page(0, pep0_content)
+    return data['content']
 
 
 def get_pep0_page(commit=True):
